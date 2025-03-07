@@ -168,15 +168,6 @@ def test_verify_top_up_failure(manager):
             assert manager.verify_top_up(deployment_id, 500_000) is False
 
 def test_manage_balances_skips_sufficient_funds(manager, sample_deployment):
-    # Create a second deployment based on the sample
-    # Create modified copy of sample deployment
-    second_deployment = json.loads(json.dumps(sample_deployment))  # Deep copy
-    second_deployment["deployment"]["deployment_id"] = {"owner": "akash1test2", "dseq": "2"}
-    second_deployment["escrow_account"]["id"]["xid"] = "akash1test2/2"
-    second_deployment["escrow_account"]["owner"] = "akash1test2"
-    second_deployment["escrow_account"]["depositor"] = "akash1test2"
-    second_deployment["escrow_account"]["funds"]["amount"] = "500000"  # Below threshold
-    
     # Create deployment with funds well above threshold
     sample_deployment["escrow_account"]["funds"]["amount"] = "5000000"  # 5 AKT
     
@@ -188,8 +179,7 @@ def test_manage_balances_skips_sufficient_funds(manager, sample_deployment):
     with patch.object(manager.cli, 'get_deployments') as mock_get:
         mock_get.return_value = deployments
         with patch.object(manager, 'verify_top_up') as mock_verify:
-            # verify_top_up should never be called
-            mock_verify.assert_not_called()
+            mock_verify.return_value = True  # Should never be called
             
             result = manager.manage_balances()
             
@@ -197,6 +187,7 @@ def test_manage_balances_skips_sufficient_funds(manager, sample_deployment):
             assert result["funded"] == 0  # Should not fund
             assert result["failed"] == 0
             assert result["skipped"] == 0
+            mock_verify.assert_not_called()  # Verify top-up was never attempted
 
 def test_manage_balances_invalid_amount(manager):
     manager.top_up_amount = 400_000  # Below minimum
