@@ -53,7 +53,7 @@ runs:
         cert-id: ${{ inputs.cert-id }}
         depositor-account: ${{ inputs.depositor-account }}
         fee-account: ${{ inputs.fee-account }}
-    - run: pip3 install -r requirements.txt
+    - run: pip3 install -r ${{ github.action_path }}/requirements.txt
       shell: bash
     - id: monitor
       run: python3 -m scripts.cli --min-balance ${{ inputs.min-balance-threshold }} --top-up ${{ inputs.top-up-amount }} --block-buffer ${{ inputs.block-buffer }}
