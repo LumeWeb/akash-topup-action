@@ -1,0 +1,60 @@
+name: 'Akash Deployment Top Up'
+description: 'Monitors and automatically tops up Akash deployments when balances are low'
+
+outputs:
+  summary:
+    description: 'JSON summary of all actions taken'
+    value: ${{ steps.monitor.outputs.summary }}
+  deployments_checked:
+    description: 'Number of deployments checked'
+    value: ${{ steps.monitor.outputs.deployments_checked }}
+  deployments_funded:
+    description: 'Number of deployments funded'
+    value: ${{ steps.monitor.outputs.deployments_funded }}
+  total_funded_akt:
+    description: 'Total amount funded in AKT'
+    value: ${{ steps.monitor.outputs.total_funded_akt }}
+
+inputs:
+  mnemonic:
+    description: 'Recovery phrase for the wallet'
+    required: true
+  cert-content:
+    description: 'Certificate content for Akash authentication'
+    required: true
+  cert-id:
+    description: 'Certificate ID for Akash authentication'
+    required: true
+  depositor-account:
+    description: 'Akash depositor account address'
+    required: true
+  fee-account:
+    description: 'Akash fee account address'
+    required: true
+  min-balance-threshold:
+    description: 'Balance threshold to trigger top-up (in AKT)'
+    required: true
+  top-up-amount:
+    description: 'Amount to add (minimum 0.5 AKT in uakt)'
+    required: true
+  block-buffer:
+    description: 'Safety margin in blocks before estimated closure'
+    required: true
+    default: '1000'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: lumeweb/akash-action@v0.1.6
+      with:
+        wallet-name: 'akash_deploy'
+        mnemonic: ${{ inputs.mnemonic }}
+        cert-content: ${{ inputs.cert-content }}
+        cert-id: ${{ inputs.cert-id }}
+        depositor-account: ${{ inputs.depositor-account }}
+        fee-account: ${{ inputs.fee-account }}
+    - run: pip3 install -r requirements.txt
+      shell: bash
+    - id: monitor
+      run: python3 -m scripts.cli --min-balance ${{ inputs.min-balance-threshold }} --top-up ${{ inputs.top-up-amount }} --block-buffer ${{ inputs.block-buffer }}
+      shell: bash
