@@ -102,11 +102,17 @@ class AkashCLI(AkashCLIBase):
         Returns:
             True if successful, False otherwise
         """
+        account = os.environ.get("AKASH_ACCOUNT_ADDRESS")
+        if not account:
+            self.logger.error("AKASH_ACCOUNT_ADDRESS not set")
+            return False
+            
         cmd = [
             "provider-services", "tx", "deployment", "deposit",
             str(amount),
             "--owner", owner,
             "--dseq", dseq,
+            "--from", account,
             "--yes"  # Auto-confirm
         ]
         code, stdout, stderr = self._run_command(cmd)
