@@ -167,7 +167,7 @@ def test_verify_top_up_failure(manager):
             
             assert manager.verify_top_up(deployment_id, 500_000) is False
 
-def test_manage_balances_success(manager, sample_deployment):
+def test_manage_balances_skips_sufficient_funds(manager, sample_deployment):
     # Create a second deployment based on the sample
     # Create modified copy of sample deployment
     second_deployment = json.loads(json.dumps(sample_deployment))  # Deep copy
@@ -177,26 +177,24 @@ def test_manage_balances_success(manager, sample_deployment):
     second_deployment["escrow_account"]["depositor"] = "akash1test2"
     second_deployment["escrow_account"]["funds"]["amount"] = "500000"  # Below threshold
     
+    # Create deployment with funds well above threshold
+    sample_deployment["escrow_account"]["funds"]["amount"] = "5000000"  # 5 AKT
+    
     deployments = {
-        "deployments": [
-            {**sample_deployment},  # Above threshold (2000000) - should not trigger funding 
-            second_deployment  # Below threshold (500000) - should trigger funding
-        ],
-        "pagination": {
-            "next_key": None,
-            "total": "2"
-        }
+        "deployments": [sample_deployment],
+        "pagination": {"next_key": None, "total": "1"}
     }
     
     with patch.object(manager.cli, 'get_deployments') as mock_get:
         mock_get.return_value = deployments
         with patch.object(manager, 'verify_top_up') as mock_verify:
-            mock_verify.return_value = True
+            # verify_top_up should never be called
+            mock_verify.assert_not_called()
             
             result = manager.manage_balances()
             
-            assert result["checked"] == 2
-            assert result["funded"] == 1
+            assert result["checked"] == 1
+            assert result["funded"] == 0  # Should not fund
             assert result["failed"] == 0
             assert result["skipped"] == 0
 

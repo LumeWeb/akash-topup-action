@@ -259,12 +259,15 @@ class DeploymentManager:
                     summary["skipped"] += 1
                     continue
 
-                if self.needs_funding(deployment):
-                    if self.verify_top_up(deployment_id, self.top_up_amount):
-                        summary["funded"] += 1
-                        summary["total_funded"] += self.top_up_amount
-                    else:
-                        summary["failed"] += 1
+                if not self.needs_funding(deployment):
+                    self.logger.debug(f"Deployment {deployment_id.get('owner', 'unknown')}/{deployment_id.get('dseq', 'unknown')} has sufficient funds, skipping")
+                    continue
+                    
+                if self.verify_top_up(deployment_id, self.top_up_amount):
+                    summary["funded"] += 1
+                    summary["total_funded"] += self.top_up_amount
+                else:
+                    summary["failed"] += 1
 
             except Exception as e:
                 deployment_id_str = f"{deployment_id.get('owner', 'unknown')}/{deployment_id.get('dseq', 'unknown')}" if deployment_id else "unknown"
