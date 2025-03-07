@@ -31,7 +31,8 @@ def test_get_deployment_balance_success(cli):
         assert result == 1000
 
 def test_top_up_deployment_success(cli):
-    with patch.object(cli, '_run_command') as mock_run:
-        mock_run.return_value = (0, 'success', '')
-        result = cli.top_up_deployment("akash1test1", "1", 1000)
-        assert result is True
+    with patch.dict('os.environ', {'AKASH_ACCOUNT_ADDRESS': 'akash1test1'}):
+        with patch.object(cli, '_run_command') as mock_run:
+            mock_run.return_value = (0, 'success', '')
+            result = cli.top_up_deployment("akash1test1", "1", 1000)
+            assert result is True
