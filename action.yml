@@ -56,5 +56,8 @@ runs:
     - run: pip3 install -r ${{ github.action_path }}/requirements.txt
       shell: bash
     - id: monitor
-      run: python3 -m scripts.cli --min-balance ${{ inputs.min-balance-threshold }} --top-up ${{ inputs.top-up-amount }} --block-buffer ${{ inputs.block-buffer }}
+      run: |
+        cd $GITHUB_ACTION_PATH
+        export PYTHONPATH=$PYTHONPATH:$GITHUB_ACTION_PATH
+        python3 -m scripts.cli --min-balance ${{ inputs.min-balance-threshold }} --top-up ${{ inputs.top-up-amount }} --block-buffer ${{ inputs.block-buffer }}
       shell: bash
