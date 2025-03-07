@@ -109,7 +109,7 @@ class AkashCLI(AkashCLIBase):
             
         cmd = [
             "provider-services", "tx", "deployment", "deposit",
-            str(amount),
+            f"{amount}uakt",  # Add denomination to amount
             "--owner", owner,
             "--dseq", dseq,
             "--from", account,
