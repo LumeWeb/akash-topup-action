@@ -124,7 +124,7 @@ class DeploymentManager:
             self.logger.error(f"Error checking funding needs: {str(e)}")
             return False
 
-    def verify_top_up(self, deployment_id: Dict[str, str], amount: int, max_retries: int = 3, include_fees: bool = True) -> bool:
+    def verify_top_up(self, deployment_id: Dict[str, str], amount: int, max_retries: int = 1, include_fees: bool = True) -> bool:
         """
         Verify a top-up transaction was successful
         
@@ -151,16 +151,36 @@ class DeploymentManager:
         if initial_balance is None:
             return False
             
-        for _ in range(max_retries):
-            if not self.cli.top_up_deployment(owner, dseq, amount):
-                continue
-                
-            # Wait for transaction to be processed
-            time.sleep(6)  # Average block time
+        # Check if we have enough balance to perform the transaction
+        fee_account = os.environ.get("AKASH_FEE_ACCOUNT")
+        account_to_check = fee_account if fee_account else os.environ.get("AKASH_ACCOUNT_ADDRESS")
+        
+        account_balance = self.cli.get_account_balance(account_to_check)
+        if account_balance is None:
+            self.logger.error("Failed to get account balance")
+            return False
             
-            new_balance = self.cli.get_deployment_balance(owner, dseq)
-            if new_balance is None:
-                continue
+        required_balance = amount
+        if include_fees:
+            required_balance += calculate_transaction_fee()
+            
+        if account_balance < required_balance:
+            self.logger.error(
+                f"Insufficient account balance: {account_balance} < {required_balance} "
+                f"(amount={amount} + fees={required_balance - amount if include_fees else 0})"
+            )
+            return False
+
+        # Attempt the transaction
+        if not self.cli.top_up_deployment(owner, dseq, amount):
+            return False
+            
+        # Wait for transaction to be processed
+        time.sleep(6)  # Average block time
+        
+        new_balance = self.cli.get_deployment_balance(owner, dseq)
+        if new_balance is None:
+            return False
                 
             # Calculate expected balance including fees
             expected = initial_balance + amount

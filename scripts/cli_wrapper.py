@@ -11,6 +11,43 @@ class AkashCLI(AkashCLIBase):
     def __init__(self):
         super().__init__()
 
+    def get_account_balance(self, account: str = None) -> Optional[int]:
+        """
+        Get balance for an account
+        
+        Args:
+            account: Account address (uses AKASH_ACCOUNT_ADDRESS if None)
+            
+        Returns:
+            Balance in uakt or None if error
+        """
+        account = account or os.environ.get("AKASH_ACCOUNT_ADDRESS")
+        if not account:
+            return None
+            
+        cmd = [
+            "query", "bank", "balances",
+            account,
+            "--denom", "uakt",
+            "--output", "json"
+        ]
+        code, stdout, stderr = self._run_command(cmd)
+        
+        if code != 0:
+            self.logger.error(f"Failed to get account balance: {stderr}")
+            return None
+            
+        try:
+            data = json.loads(stdout)
+            balances = data.get("balances", [])
+            for balance in balances:
+                if balance.get("denom") == "uakt":
+                    return int(balance.get("amount", "0"))
+            return 0
+        except (json.JSONDecodeError, ValueError) as e:
+            self.logger.error(f"Failed to parse account balance: {str(e)}")
+            return None
+
     def get_deployments(self) -> Optional[Dict[str, Any]]:
         """
         Get list of all active deployments for the current account
