@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Optional, List, Dict, Any
 
 from .cli_wrapper import AkashCLI
-from .utils import uakt_to_akt, akt_to_uakt, safe_get, parse_escrow_amount
+from .utils import uakt_to_akt, akt_to_uakt, safe_get, parse_escrow_amount, calculate_transaction_fee
 from .reporter import ActionReporter
 
 class DeploymentManager:
