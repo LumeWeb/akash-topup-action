@@ -68,7 +68,8 @@ def test_verify_top_up_with_fees(setup_env_vars, mocker: MockerFixture):
     assert manager.verify_top_up(deployment_id, 5000, include_fees=True)
     
     # Reset mock with new values for the second test
-    mock_cli.get_deployment_balance.side_effect = [10000, 14250, 14250]  # Initial, After (need one more for retry)
+    mock_cli.get_deployment_balance.side_effect = [10000, 14250, 14250, 14250]  # Initial, After, Retry checks
+    mock_cli.top_up_deployment.return_value = True
     
     # Should fail verification when fees aren't accounted for
     # Without fees, we expect 15000 (10000 + 5000)
