@@ -98,11 +98,12 @@ class DeploymentManager:
             owner = deployment_id.get("owner", "unknown")
             dseq = deployment_id.get("dseq", "unknown")
             
-            if balance <= self.min_threshold:
-                self.logger.info(f"Deployment {owner}/{dseq} needs funding: balance={balance} <= threshold={self.min_threshold}")
+            # Only fund if balance is strictly below threshold
+            if balance < self.min_threshold:
+                self.logger.info(f"Deployment {owner}/{dseq} needs funding: balance={balance} < threshold={self.min_threshold}")
                 return True
                 
-            self.logger.debug(f"Deployment {owner}/{dseq} has sufficient funds: balance={balance} > threshold={self.min_threshold}")
+            self.logger.debug(f"Deployment {owner}/{dseq} has sufficient funds: balance={balance} >= threshold={self.min_threshold}")
             return False
 
         except (KeyError, ValueError) as e:
