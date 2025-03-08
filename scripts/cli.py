@@ -52,13 +52,6 @@ def parse_args():
     )
     
     parser.add_argument(
-        "--block-buffer",
-        type=int,
-        default=1000,
-        help="Safety margin in blocks before estimated closure (default: 1000)"
-    )
-    
-    parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable verbose logging"
@@ -80,8 +73,7 @@ def main():
     # Create and run manager
     manager = DeploymentManager(
         min_threshold=min_balance,
-        top_up_amount=top_up,
-        block_buffer=args.block_buffer
+        top_up_amount=top_up
     )
     
     try:

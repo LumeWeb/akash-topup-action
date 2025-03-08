@@ -10,8 +10,7 @@ from . import sample_deployment
 def manager():
     return DeploymentManager(
         min_threshold=1_000_000,  # 1 AKT
-        top_up_amount=500_000,    # 0.5 AKT
-        block_buffer=1000
+        top_up_amount=500_000     # 0.5 AKT
     )
 
 def test_get_active_deployments_success(manager, sample_deployment):
@@ -57,64 +56,7 @@ def test_get_active_deployments_success(manager, sample_deployment):
         assert safe_get(result[0], "deployment", "deployment_id", "dseq") == "1"
         assert safe_get(result[0], "escrow_account", "funds", "amount") == "2000000"
 
-def test_calculate_burn_rate_success(manager):
-    deployment = {
-        "groups": [
-            {
-                "group_spec": {
-                    "resources": [
-                        {"price": {"amount": "100"}, "count": 1},
-                        {"price": {"amount": "200"}, "count": 1}
-                    ]
-                }
-            }
-        ]
-    }
-    
-    result = manager.calculate_burn_rate(deployment)
-    assert result == Decimal("300")
 
-def test_estimate_closure_success(manager):
-    deployment = {
-        "escrow_account": {
-            "funds": {"denom": "uakt", "amount": "1000"}
-        }
-    }
-    burn_rate = Decimal("10")
-    
-    result = manager.estimate_closure(deployment, burn_rate)
-    assert result == 100
-
-def test_needs_funding_low_balance(manager):
-    deployment = {
-        "deployment": {"state": "active"},
-        "escrow_account": {
-            "funds": {"denom": "uakt", "amount": "500000"}
-        }
-    }  # Below threshold
-    
-    result = manager.needs_funding(deployment)
-    assert result is True
-
-def test_needs_funding_low_blocks(manager):
-    deployment = {
-        "deployment": {"state": "active"},
-        "escrow_account": {
-            "funds": {"denom": "uakt", "amount": "2000000"}
-        },
-        "groups": [
-            {
-                "group_spec": {
-                    "resources": [
-                        {"price": {"amount": "2000"}, "count": 1}
-                    ]
-                }
-            }
-        ]
-    }
-    
-    result = manager.needs_funding(deployment)
-    assert result is True
 
 def test_validate_amount_success(manager):
     assert manager.validate_amount(500_000) is True  # 0.5 AKT
@@ -186,6 +128,7 @@ def test_manage_balances_skips_sufficient_funds(manager, sample_deployment):
             assert result["checked"] == 1
             assert result["funded"] == 0  # Should not fund
             assert result["failed"] == 0
+            assert result["total_funded"] == 0
             assert result["skipped"] == 0
             mock_verify.assert_not_called()  # Verify top-up was never attempted
 

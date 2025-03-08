@@ -7,32 +7,9 @@ from .utils import parse_escrow_amount
 
 class AkashCLI(AkashCLIBase):
     """Wrapper for Akash CLI commands"""
-    _cache_duration = 300  # Cache block time for 5 minutes
 
     def __init__(self):
         super().__init__()
-        from .calculate_block_time import BlockTimeCalculator
-        self.block_calculator = BlockTimeCalculator()
-        self._block_time_cache = None
-        self._cache_time = None
-
-    def get_average_block_time(self) -> Optional[float]:
-        """
-        Get average block time with caching
-        
-        Returns:
-            Average block time in seconds or None if error
-        """
-        from time import time
-        now = time()
-        
-        if (self._block_time_cache is None or 
-            self._cache_time is None or
-            now - self._cache_time > self._cache_duration):
-            self._block_time_cache = self.block_calculator.calculate_average_time()
-            self._cache_time = now
-            
-        return self._block_time_cache
 
     def get_deployments(self) -> Optional[Dict[str, Any]]:
         """

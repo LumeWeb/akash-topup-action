@@ -18,23 +18,20 @@ class DeploymentManager:
     - escrow_account: Contains balance information in the funds field
     """
     
-    def __init__(self, min_threshold: int, top_up_amount: int, block_buffer: int = 1000):
+    def __init__(self, min_threshold: int, top_up_amount: int):
         """
         Initialize manager
         
         Args:
             min_threshold: Minimum balance threshold in uakt (1 AKT = 1,000,000 uakt)
             top_up_amount: Amount to top up in uakt (minimum 0.5 AKT = 500,000 uakt)
-            block_buffer: Number of blocks before estimated closure to trigger top-up
             
         Schema validation:
             - Deployments must have deployment.state = "active"
             - Balance is read from escrow_account.funds.amount
-            - Burn rate calculated from groups[].group_spec.resources[].price.amount
         """
         self.min_threshold = min_threshold
         self.top_up_amount = top_up_amount
-        self.block_buffer = block_buffer
         self.logger = logging.getLogger(__name__)
         self.cli = AkashCLI()
         self.reporter = ActionReporter()
@@ -66,62 +63,6 @@ class DeploymentManager:
             return []
         return deployments.get("deployments", [])
 
-    def calculate_burn_rate(self, deployment: Dict[str, Any]) -> Optional[Decimal]:
-        """
-        Calculate per-block burn rate for a deployment
-        
-        The burn rate is calculated by summing:
-            price.amount * count for each resource in each group
-        
-        Args:
-            deployment: Deployment data following the schema
-            
-        Returns:
-            Burn rate in uakt per block or None if error
-            
-        Schema path:
-            groups[].group_spec.resources[].{price.amount, count}
-        """
-        try:
-            total_cost = Decimal(0)
-            for group in deployment.get("groups", []):
-                group_spec = group.get("group_spec", {})
-                for resource in group_spec.get("resources", []):
-                    price = resource.get("price", {})
-                    amount = Decimal(price.get("amount", "0"))
-                    count = int(resource.get("count", 1))
-                    total_cost += amount * count
-            return total_cost
-        except (KeyError, ValueError) as e:
-            self.logger.error(f"Error calculating burn rate: {str(e)}")
-            return None
-
-    def estimate_closure(self, deployment: Dict[str, Any], burn_rate: Decimal) -> Optional[int]:
-        """
-        Estimate blocks until deployment closure
-        
-        Calculation:
-            blocks = escrow_account.funds.amount / burn_rate
-        
-        Args:
-            deployment: Deployment data following the schema
-            burn_rate: Per-block burn rate in uakt
-            
-        Returns:
-            Estimated blocks until closure or None if error
-            
-        Schema path:
-            escrow_account.funds.amount
-        """
-        try:
-            escrow = deployment.get("escrow_account", {})
-            balance = parse_escrow_amount(escrow)
-            if balance is None or burn_rate <= 0:
-                return None
-            return int(Decimal(balance) / burn_rate)
-        except (KeyError, ValueError, ZeroDivisionError) as e:
-            self.logger.error(f"Error estimating closure: {str(e)}")
-            return None
 
     def needs_funding(self, deployment: Dict[str, Any]) -> bool:
         """
@@ -129,8 +70,7 @@ class DeploymentManager:
         
         A deployment needs funding if:
         1. It is in "active" state
-        2. Current balance <= min_threshold OR
-        3. Estimated blocks remaining <= block_buffer
+        2. Current balance <= min_threshold
         
         Args:
             deployment: Deployment data following the schema
@@ -141,7 +81,6 @@ class DeploymentManager:
         Schema validation:
             - deployment.state must be "active"
             - Balance checked from escrow_account.funds.amount
-            - Burn rate calculated from groups[].group_spec.resources[]
         """
         try:
             # Check if deployment is active
@@ -154,19 +93,17 @@ class DeploymentManager:
             if balance is None:
                 return False
                 
+            # Log the funding decision
+            deployment_id = safe_get(deployment, "deployment", "deployment_id", {}) or {}
+            owner = deployment_id.get("owner", "unknown")
+            dseq = deployment_id.get("dseq", "unknown")
+            
             if balance <= self.min_threshold:
+                self.logger.info(f"Deployment {owner}/{dseq} needs funding: balance={balance} <= threshold={self.min_threshold}")
                 return True
-
-            # Check estimated closure
-            burn_rate = self.calculate_burn_rate(deployment)
-            if not burn_rate:
-                return False
-
-            blocks_remaining = self.estimate_closure(deployment, burn_rate)
-            if not blocks_remaining:
-                return False
-
-            return blocks_remaining <= self.block_buffer
+                
+            self.logger.debug(f"Deployment {owner}/{dseq} has sufficient funds: balance={balance} > threshold={self.min_threshold}")
+            return False
 
         except (KeyError, ValueError) as e:
             self.logger.error(f"Error checking funding needs: {str(e)}")

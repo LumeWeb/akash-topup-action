@@ -24,7 +24,6 @@ Add this action to your workflow:
     fee-account: ${{ secrets.AKASH_FEE_ACCOUNT }}
     min-balance-threshold: "1.0"  # AKT
     top-up-amount: "0.5"         # AKT
-    block-buffer: "1000"         # blocks
 ```
 
 ## Inputs
@@ -38,7 +37,6 @@ Add this action to your workflow:
 | `fee-account` | Akash fee account address | Yes | - |
 | `min-balance-threshold` | Balance threshold to trigger top-up (in AKT) | Yes | - |
 | `top-up-amount` | Amount to add (minimum 0.5 AKT) | Yes | - |
-| `block-buffer` | Safety margin in blocks before estimated closure | No | 1000 |
 
 ## Outputs
 
@@ -99,7 +97,7 @@ pytest --cov=scripts tests/
 The action can also be used as a standalone CLI tool:
 
 ```bash
-python -m scripts.cli --min-balance 1.0 --top-up 0.5 --block-buffer 1000
+python -m scripts.cli --min-balance 1.0 --top-up 0.5
 ```
 
 ## License
