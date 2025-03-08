@@ -90,7 +90,10 @@ class AkashCLI(AkashCLIBase):
             "--owner", owner,
             "--dseq", dseq,
             "--from", account,
-            "--yes"  # Auto-confirm
+            "--yes",  # Auto-confirm
+            "--gas", os.environ.get('AKASH_GAS', 'auto'),
+            "--gas-adjustment", os.environ.get('AKASH_GAS_ADJUSTMENT', '1.75'),
+            "--gas-prices", os.environ.get('AKASH_GAS_PRICES', '0.025uakt')
         ]
         code, stdout, stderr = self._run_command(cmd)
         

@@ -1,6 +1,7 @@
 import logging
+import os
 import sys
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Dict, Tuple
 from decimal import Decimal, DecimalException
 
 def setup_logging(level: int = logging.INFO) -> None:
@@ -70,6 +71,39 @@ def parse_escrow_amount(escrow_: Dict[str, Any]) -> Optional[int]:
     except (TypeError, ValueError, DecimalException) as e:
         logging.error(f"Failed to parse escrow amount: {str(e)}")
         return None
+
+def get_gas_config() -> Tuple[str, str, str]:
+    """
+    Get gas configuration from environment variables
+    
+    Returns:
+        Tuple of (gas_prices, gas, gas_adjustment)
+    """
+    return (
+        os.environ.get('AKASH_GAS_PRICES', '0.025uakt'),
+        os.environ.get('AKASH_GAS', 'auto'),
+        os.environ.get('AKASH_GAS_ADJUSTMENT', '1.75')
+    )
+
+def calculate_transaction_fee(gas_limit: int = 200000) -> int:
+    """
+    Calculate transaction fee in uakt
+    
+    Args:
+        gas_limit: Gas limit for transaction
+        
+    Returns:
+        Fee in uakt
+    """
+    gas_price = os.environ.get('AKASH_GAS_PRICES', '0.025uakt')
+    gas_adjustment = float(os.environ.get('AKASH_GAS_ADJUSTMENT', '1.75'))
+    
+    # Extract numerical value from gas price (removing 'uakt')
+    price_value = Decimal(gas_price.replace('uakt', ''))
+    
+    # Calculate fee: gas_limit * gas_price * gas_adjustment
+    fee = int(gas_limit * price_value * Decimal(str(gas_adjustment)))
+    return fee
 
 def safe_get(obj: dict, *keys: str, default: Any = None) -> Optional[Any]:
     """

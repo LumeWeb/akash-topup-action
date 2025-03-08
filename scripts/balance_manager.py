@@ -64,7 +64,7 @@ class DeploymentManager:
         return deployments.get("deployments", [])
 
 
-    def needs_funding(self, deployment: Dict[str, Any]) -> bool:
+    def needs_funding(self, deployment: Dict[str, Any], include_fees: bool = True) -> bool:
         """
         Check if deployment needs additional funding
         
@@ -98,19 +98,33 @@ class DeploymentManager:
             owner = deployment_id.get("owner", "unknown")
             dseq = deployment_id.get("dseq", "unknown")
             
+            # Calculate minimum required balance including transaction fees if needed
+            min_required = self.min_threshold
+            if include_fees:
+                tx_fee = calculate_transaction_fee()
+                min_required += tx_fee
+                self.logger.debug(f"Including transaction fee of {tx_fee} uakt in calculation")
+
             # Only fund if balance is strictly below threshold
-            if balance < self.min_threshold:
-                self.logger.info(f"Deployment {owner}/{dseq} needs funding: balance={balance} < threshold={self.min_threshold}")
+            if balance < min_required:
+                self.logger.info(
+                    f"Deployment {owner}/{dseq} needs funding: "
+                    f"balance={balance} < required={min_required} "
+                    f"(threshold={self.min_threshold} + fees={tx_fee if include_fees else 0})"
+                )
                 return True
                 
-            self.logger.debug(f"Deployment {owner}/{dseq} has sufficient funds: balance={balance} >= threshold={self.min_threshold}")
+            self.logger.debug(
+                f"Deployment {owner}/{dseq} has sufficient funds: "
+                f"balance={balance} >= required={min_required}"
+            )
             return False
 
         except (KeyError, ValueError) as e:
             self.logger.error(f"Error checking funding needs: {str(e)}")
             return False
 
-    def verify_top_up(self, deployment_id: Dict[str, str], amount: int, max_retries: int = 3) -> bool:
+    def verify_top_up(self, deployment_id: Dict[str, str], amount: int, max_retries: int = 3, include_fees: bool = True) -> bool:
         """
         Verify a top-up transaction was successful
         
@@ -148,8 +162,11 @@ class DeploymentManager:
             if new_balance is None:
                 continue
                 
-            # Verify the exact amount was added
+            # Calculate expected balance including fees
             expected = initial_balance + amount
+            if include_fees:
+                tx_fee = calculate_transaction_fee()
+                expected -= tx_fee  # Subtract transaction fee from expected balance
             if new_balance >= expected:
                 return True
                 
