@@ -26,7 +26,7 @@ class AkashCLI(AkashCLIBase):
             return None
             
         cmd = [
-            "query", "bank", "balances",
+            "provider-services", "query", "bank", "balances",
             account,
             "--denom", "uakt",
             "--output", "json"
