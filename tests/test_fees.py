@@ -1,6 +1,7 @@
 import os
 import pytest
 from decimal import Decimal
+from pytest_mock import MockerFixture
 from scripts.utils import calculate_transaction_fee, get_gas_config
 from scripts.balance_manager import DeploymentManager
 
@@ -51,7 +52,7 @@ def test_needs_funding_with_fees(setup_env_vars):
     # Should not need funding when fees are excluded
     assert not manager.needs_funding(deployment, include_fees=False)
 
-def test_verify_top_up_with_fees(setup_env_vars, mocker):
+def test_verify_top_up_with_fees(setup_env_vars, mocker: MockerFixture):
     """Test verify_top_up accounting for transaction fees"""
     manager = DeploymentManager(min_threshold=10000, top_up_amount=5000)
     
